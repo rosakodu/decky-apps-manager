@@ -377,9 +377,11 @@ async def get_screenshots(app_id: str) -> List[str]:
     The zoomed view shows these close to full-screen, so the smallest
     available size (originally picked here) looked visibly soft/blurry
     blown up that large — the largest size at or under ~800px wide is
-    plenty crisp there without downloading a screenshot's full original
-    (which this API also offers, but is often several times heavier)."""
-    data = await http_json.get_json(f"https://flathub.org/api/v2/appstream/{app_id}")
+    plenty crisp there without downloading a screenshot's full original."""
+    # Query deckyloader.ru mirror first for fast loading in Russia, fallback to flathub.org
+    data = await http_json.get_json(f"https://deckyloader.ru/flathub-api/v2/appstream/{app_id}")
+    if not data:
+        data = await http_json.get_json(f"https://flathub.org/api/v2/appstream/{app_id}")
     urls = []
     for shot in (data or {}).get("screenshots") or []:
         sizes = [s for s in (shot.get("sizes") or []) if s.get("src")]
@@ -387,7 +389,10 @@ async def get_screenshots(app_id: str) -> List[str]:
         candidates = under_cap or sizes
         best = max(candidates, key=lambda s: int(s.get("width") or 0), default=None)
         if best:
-            urls.append(best["src"])
+            url = best["src"]
+            if url.startswith("https://dl.flathub.org/"):
+                url = url.replace("https://dl.flathub.org/", "https://deckyloader.ru/flathub/")
+            urls.append(url)
     return urls
 
 
@@ -492,3 +497,34 @@ def search_icon_path(app_id: str) -> Optional[Path]:
             if svg_candidate.is_file():
                 return svg_candidate
     return None
+
+
+async def get_flathub_mirror() -> str:
+    """Returns 'deckyloader' if flathub remote is pointing to deckyloader.ru mirror, else 'official'."""
+    code, out, _ = await proc_env.run(
+        ["flatpak", "remotes", "-d", "--columns=name,url"],
+        "system", _LOG, timeout=10
+    )
+    if code == 0:
+        for line in out.strip().splitlines():
+            if "flathub" in line and "deckyloader.ru" in line:
+                return "deckyloader"
+    return "official"
+
+
+async def set_flathub_mirror(mirror: str) -> bool:
+    """Switches flathub remote URL between official (dl.flathub.org) and deckyloader.ru proxy."""
+    target_url = "https://deckyloader.ru/flathub/repo/" if mirror == "deckyloader" else "https://dl.flathub.org/repo/"
+    decky.logger.info(f"[{_LOG}] setting flathub mirror to {mirror}: {target_url}")
+    code_sys, _, _ = await proc_env.run(
+        ["flatpak", "remote-modify", "--system", "flathub", f"--url={target_url}"],
+        "system", _LOG, timeout=15
+    )
+    user_remotes = await list_remotes("user")
+    if "flathub" in user_remotes:
+        await proc_env.run(
+            ["flatpak", "remote-modify", "--user", "flathub", f"--url={target_url}"],
+            "user", _LOG, timeout=15
+        )
+    return code_sys == 0
+

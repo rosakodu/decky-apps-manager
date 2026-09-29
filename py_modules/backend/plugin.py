@@ -147,6 +147,12 @@ class Plugin(PluginUpdaterMixin, WhatsNewSeenMixin, OtherPluginsSeenMixin):
     async def get_flatpak_screenshots(self, app_id: str) -> List[str]:
         return await apps_service.get_flatpak_screenshots(app_id)
 
+    async def get_flathub_mirror(self) -> str:
+        return apps_service.get_flathub_mirror()
+
+    async def set_flathub_mirror(self, mirror: str) -> bool:
+        return await apps_service.set_flathub_mirror(mirror)
+
     # ── AppImage catalog (search/install apps Gearlever doesn't manage yet) ─
 
     async def search_appimage_catalog(self, query: str) -> List[Dict[str, Any]]:
@@ -218,6 +224,10 @@ class Plugin(PluginUpdaterMixin, WhatsNewSeenMixin, OtherPluginsSeenMixin):
 
     async def _main(self):
         decky.logger.info("plugin loaded")
+        try:
+            await apps_service.apply_flathub_mirror_on_boot()
+        except Exception:
+            decky.logger.error(f"[_main] apply flathub mirror failed:\n{traceback.format_exc()}")
         try:
             update_info = await self.check_plugin_update_on_load()
             if update_info:

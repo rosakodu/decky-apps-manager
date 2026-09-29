@@ -45,6 +45,7 @@ _AUTO_UPDATE_HISTORY_SEEN_PATH = (
 _UPDATE_TOAST_ENABLED_PATH = (
     Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "update_toast_enabled.json"
 )
+_FLATHUB_MIRROR_PATH = Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "flathub_mirror.json"
 # Disk mirror of _apps_cache, so "last checked" survives a backend
 # restart (plugin update, Decky reload, reboot) instead of resetting.
 _APPS_CACHE_PATH = Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "apps_cache.json"
@@ -742,3 +743,35 @@ async def install_appimage_catalog_app(
 
 async def get_appimage_catalog_icon(icon_url: str) -> str:
     return await appimage_catalog.get_icon_data_uri(icon_url)
+
+
+def get_flathub_mirror() -> str:
+    try:
+        if _FLATHUB_MIRROR_PATH.is_file():
+            return json.loads(_FLATHUB_MIRROR_PATH.read_text(encoding="utf-8")).get(
+                "mirror", "official"
+            )
+    except Exception as e:
+        decky.logger.error(f"[apps_service] reading flathub_mirror.json: {e}")
+    return "official"
+
+
+async def set_flathub_mirror(mirror: str) -> bool:
+    try:
+        _FLATHUB_MIRROR_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _FLATHUB_MIRROR_PATH.write_text(
+            json.dumps({"mirror": mirror}), encoding="utf-8"
+        )
+        return await flatpak.set_flathub_mirror(mirror)
+    except Exception as e:
+        decky.logger.error(f"[apps_service] writing flathub_mirror.json: {e}")
+        return False
+
+
+async def apply_flathub_mirror_on_boot():
+    mirror = get_flathub_mirror()
+    if mirror == "deckyloader":
+        decky.logger.info("[apps_service] enforcing deckyloader flathub mirror on boot")
+        await flatpak.set_flathub_mirror("deckyloader")
+
+

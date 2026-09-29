@@ -33,6 +33,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
     setAutoUpdateIntervalMinutes,
     showUpdateToasts,
     setShowUpdateToasts,
+    flathubMirror,
+    setFlathubMirror,
   } = useApps();
 
   return (
@@ -113,6 +115,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
               <AutoUpdateHistoryList />
             </div>
           </CollapsibleSection>
+        </PanelSectionRow>
+      </PanelSection>
+
+      <PanelSection title={tSettings("flathub_mirror_section_title")}>
+        <PanelSectionRow>
+          <AnchoredDropdown
+            label={tSettings("flathub_mirror_label")}
+            options={[
+              { value: "official", label: tSettings("flathub_mirror_official") },
+              { value: "deckyloader", label: tSettings("flathub_mirror_deckyloader") },
+            ]}
+            selectedValue={flathubMirror}
+            onChange={(value) => setFlathubMirror(value)}
+          />
+          <div style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>
+            {tSettings("flathub_mirror_description")}
+          </div>
         </PanelSectionRow>
       </PanelSection>
 

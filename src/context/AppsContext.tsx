@@ -64,6 +64,8 @@ interface AppsContextValue {
   autoUpdateHistory: AutoUpdateHistoryEntry[];
   hasUnseenAutoUpdate: boolean;
   markAutoUpdateHistorySeen: () => void;
+  flathubMirror: string;
+  setFlathubMirror: (mirror: string) => Promise<void>;
 }
 
 const AppsContext = createContext<AppsContextValue | null>(null);
@@ -93,6 +95,7 @@ export const AppsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [showUpdateToasts, setShowUpdateToastsState] = useState(true);
   const [autoUpdateHistory, setAutoUpdateHistory] = useState<AutoUpdateHistoryEntry[]>([]);
   const [hasUnseenAutoUpdate, setHasUnseenAutoUpdate] = useState(false);
+  const [flathubMirror, setFlathubMirrorState] = useState<string>("official");
 
   const setStatus = (id: string, status: AppRowStatus) =>
     setStatuses((prev) => ({ ...prev, [id]: status }));
@@ -149,6 +152,17 @@ export const AppsProvider: React.FC<{ children: React.ReactNode }> = ({
   const markAutoUpdateHistorySeen = useCallback(() => {
     setHasUnseenAutoUpdate(false);
     call<[], boolean>("mark_auto_update_history_seen");
+  }, []);
+
+  useEffect(() => {
+    call<[], string>("get_flathub_mirror").then((m) =>
+      setFlathubMirrorState(m || "official")
+    );
+  }, []);
+
+  const setFlathubMirror = useCallback(async (mirror: string) => {
+    setFlathubMirrorState(mirror);
+    await call<[string], boolean>("set_flathub_mirror", mirror);
   }, []);
 
   const applyData = (data: AppsListResponse) => {
@@ -401,6 +415,8 @@ export const AppsProvider: React.FC<{ children: React.ReactNode }> = ({
         autoUpdateHistory,
         hasUnseenAutoUpdate,
         markAutoUpdateHistorySeen,
+        flathubMirror,
+        setFlathubMirror,
       }}
     >
       {children}
