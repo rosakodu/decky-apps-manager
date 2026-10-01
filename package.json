@@ -1,8 +1,8 @@
 {
   "name": "decky-apps-manager",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "display_name": "Apps Manager",
-  "description": "Check for and apply updates to your Flatpak apps (including ones installed via Discover) and Gearlever-managed AppImages, and discover/install new ones from either — all from Steam's Quick Access menu.",
+  "description": "Менеджер Flatpak и AppImage приложений прямо в Game Mode с зеркалом Flathub для России.",
   "type": "module",
   "scripts": {
     "version": "node -e \"const fs=require('fs');const p='./plugin.json';const o=JSON.parse(fs.readFileSync(p));o.version=process.env.npm_package_version;fs.writeFileSync(p,JSON.stringify(o,null,2)+'\\n');\" && git add plugin.json",

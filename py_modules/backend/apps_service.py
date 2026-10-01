@@ -745,15 +745,15 @@ async def get_appimage_catalog_icon(icon_url: str) -> str:
     return await appimage_catalog.get_icon_data_uri(icon_url)
 
 
-def get_flathub_mirror() -> str:
+async def get_flathub_mirror() -> str:
     try:
         if _FLATHUB_MIRROR_PATH.is_file():
-            return json.loads(_FLATHUB_MIRROR_PATH.read_text(encoding="utf-8")).get(
-                "mirror", "official"
-            )
+            val = json.loads(_FLATHUB_MIRROR_PATH.read_text(encoding="utf-8")).get("mirror")
+            if val:
+                return val
     except Exception as e:
         decky.logger.error(f"[apps_service] reading flathub_mirror.json: {e}")
-    return "official"
+    return await flatpak.get_flathub_mirror()
 
 
 async def set_flathub_mirror(mirror: str) -> bool:
@@ -762,16 +762,25 @@ async def set_flathub_mirror(mirror: str) -> bool:
         _FLATHUB_MIRROR_PATH.write_text(
             json.dumps({"mirror": mirror}), encoding="utf-8"
         )
-        return await flatpak.set_flathub_mirror(mirror)
+        ok = await flatpak.set_flathub_mirror(mirror)
+        global _apps_cache
+        _apps_cache = None
+        if _APPS_CACHE_PATH.is_file():
+            try:
+                _APPS_CACHE_PATH.unlink()
+            except Exception:
+                pass
+        return ok
     except Exception as e:
         decky.logger.error(f"[apps_service] writing flathub_mirror.json: {e}")
         return False
 
 
 async def apply_flathub_mirror_on_boot():
-    mirror = get_flathub_mirror()
+    mirror = await get_flathub_mirror()
     if mirror == "deckyloader":
         decky.logger.info("[apps_service] enforcing deckyloader flathub mirror on boot")
         await flatpak.set_flathub_mirror("deckyloader")
+
 
 

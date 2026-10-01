@@ -148,7 +148,7 @@ class Plugin(PluginUpdaterMixin, WhatsNewSeenMixin, OtherPluginsSeenMixin):
         return await apps_service.get_flatpak_screenshots(app_id)
 
     async def get_flathub_mirror(self) -> str:
-        return apps_service.get_flathub_mirror()
+        return await apps_service.get_flathub_mirror()
 
     async def set_flathub_mirror(self, mirror: str) -> bool:
         return await apps_service.set_flathub_mirror(mirror)

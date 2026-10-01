@@ -154,11 +154,6 @@ async def _check_update(
     remote_commit = info.get("commit", "")
     if not remote_commit or remote_commit.startswith(active):
         return None, False
-    confirmed = await _has_real_update(scope, app_id)
-    if confirmed is None:
-        return None, True
-    if not confirmed:
-        return None, False
     return info.get("version") or "", False
 
 
@@ -516,15 +511,22 @@ async def set_flathub_mirror(mirror: str) -> bool:
     """Switches flathub remote URL between official (dl.flathub.org) and deckyloader.ru proxy."""
     target_url = "https://deckyloader.ru/flathub/repo/" if mirror == "deckyloader" else "https://dl.flathub.org/repo/"
     decky.logger.info(f"[{_LOG}] setting flathub mirror to {mirror}: {target_url}")
-    code_sys, _, _ = await proc_env.run(
-        ["flatpak", "remote-modify", "--system", "flathub", f"--url={target_url}"],
-        "system", _LOG, timeout=15
-    )
+    success = False
+    sys_remotes = await list_remotes("system")
+    if "flathub" in sys_remotes:
+        code, _, _ = await proc_env.run(
+            ["flatpak", "remote-modify", "--system", "flathub", f"--url={target_url}"],
+            "system", _LOG, timeout=15
+        )
+        if code == 0:
+            success = True
     user_remotes = await list_remotes("user")
     if "flathub" in user_remotes:
-        await proc_env.run(
+        code, _, _ = await proc_env.run(
             ["flatpak", "remote-modify", "--user", "flathub", f"--url={target_url}"],
             "user", _LOG, timeout=15
         )
-    return code_sys == 0
+        if code == 0:
+            success = True
+    return success
 

@@ -95,7 +95,7 @@ export const AppsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [showUpdateToasts, setShowUpdateToastsState] = useState(true);
   const [autoUpdateHistory, setAutoUpdateHistory] = useState<AutoUpdateHistoryEntry[]>([]);
   const [hasUnseenAutoUpdate, setHasUnseenAutoUpdate] = useState(false);
-  const [flathubMirror, setFlathubMirrorState] = useState<string>("official");
+  const [flathubMirror, setFlathubMirrorState] = useState<string>("deckyloader");
 
   const setStatus = (id: string, status: AppRowStatus) =>
     setStatuses((prev) => ({ ...prev, [id]: status }));
@@ -155,14 +155,12 @@ export const AppsProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   useEffect(() => {
-    call<[], string>("get_flathub_mirror").then((m) =>
-      setFlathubMirrorState(m || "official")
-    );
-  }, []);
-
-  const setFlathubMirror = useCallback(async (mirror: string) => {
-    setFlathubMirrorState(mirror);
-    await call<[string], boolean>("set_flathub_mirror", mirror);
+    call<[], any>("get_flathub_mirror")
+      .then((m) => {
+        const val = typeof m === "object" && m !== null && "result" in m ? m.result : m;
+        if (val) setFlathubMirrorState(val);
+      })
+      .catch(() => {});
   }, []);
 
   const applyData = (data: AppsListResponse) => {
@@ -224,6 +222,19 @@ export const AppsProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     },
     [t, lastCheckedAt, updateCheckIntervalMinutes]
+  );
+
+  const setFlathubMirror = useCallback(
+    async (mirror: string) => {
+      setFlathubMirrorState(mirror);
+      try {
+        await call<[string], boolean>("set_flathub_mirror", mirror);
+        refresh(true);
+      } catch (e) {
+        console.error("Failed to set flathub mirror:", e);
+      }
+    },
+    [refresh]
   );
 
   useEffect(() => {

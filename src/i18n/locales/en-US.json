@@ -28,7 +28,7 @@
     "flathub_mirror_section_title": "Flathub Mirror",
     "flathub_mirror_label": "Flathub Source",
     "flathub_mirror_official": "Official",
-    "flathub_mirror_deckyloader": "Decky Loader Россия",
+    "flathub_mirror_deckyloader": "Steam Deck Россия",
     "flathub_mirror_description": "Allows downloading and updating Flatpak apps without ISP throttling or blocks in Russia. Affects system-wide Flatpak repository."
   },
   "whats_new": {
